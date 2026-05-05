@@ -1,28 +1,21 @@
 <?php
+session_start();
 include(__DIR__ . "/../includes/db.php");
 
-// Lấy danh sách chương
+if(!isset($_SESSION['role']) || $_SESSION['role'] != 'student'){
+    header("Location: ../login.php");
+    exit;
+}
+
+// lấy chương
 $chapters = $conn->query("SELECT * FROM chapters ORDER BY order_num");
 
-// Lấy bài học hiện tại (nếu có)
-$currentLesson = null;
-$currentChapter = null;
-
-if(isset($_GET['lesson'])){
-    $id = (int)$_GET['lesson'];
-
-    $result = $conn->query("SELECT * FROM lessons WHERE id=$id");
-
-    if($result && $result->num_rows > 0){
-        $currentLesson = $result->fetch_assoc();
-
-        // Lấy chương của bài
-        $cid = $currentLesson['chapter_id'];
-        $c = $conn->query("SELECT * FROM chapters WHERE id=$cid");
-        if($c && $c->num_rows > 0){
-            $currentChapter = $c->fetch_assoc();
-        }
-    }
+// tên user
+$username = "Học sinh";
+if(isset($_SESSION['user_id'])){
+    $id = $_SESSION['user_id'];
+    $u = $conn->query("SELECT username FROM users WHERE id=$id")->fetch_assoc();
+    if($u) $username = $u['username'];
 }
 ?>
 
@@ -30,123 +23,200 @@ if(isset($_GET['lesson'])){
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>C++ Learning System</title>
+<title>Học C++</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-.sidebar {
-  min-height: 100vh;
+
+body {
+    background: #f1f5f9;
 }
 
-.sidebar b {
-  color: #0dcaf0;
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    height: 100vh;
+    background: #0f172a;
+    color: white;
+    padding: 20px;
+    overflow-y: auto;
 }
 
 .sidebar a {
-  transition: 0.2s;
+    display: block;
+    padding: 8px;
+    color: #cbd5e1;
+    text-decoration: none;
+    border-radius: 6px;
 }
 
 .sidebar a:hover {
-  background: #444;
-  border-radius: 5px;
+    background: #1e293b;
+    color: white;
 }
 
-.sidebar a.bg-primary {
-  border-radius: 5px;
+.active-lesson {
+    background: #3b82f6;
+    color: white !important;
 }
+
+/* HEADER */
+.header {
+    background: white;
+    padding: 15px 25px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+/* USER */
+.user-box {
+    background: #f1f5f9;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+/* BUTTON */
+.btn-soft {
+    border-radius: 20px;
+    padding: 6px 14px;
+}
+
+/* CONTENT */
+.content-box {
+    background: white;
+    padding: 25px;
+    border-radius: 16px;
+}
+
 </style>
 
 </head>
 <body>
 
-<div class="container-fluid">
-  <div class="row">
+<div class="d-flex">
 
-    <!-- SIDEBAR -->
-    <div class="col-3 bg-dark text-white sidebar p-0">
+<!-- SIDEBAR -->
+<div class="sidebar">
 
-      <h4 class="p-3 m-0 border-bottom">📚 C++ Learning</h4>
+<h5>📘 Học lập trình C++</h5>
 
-      <!-- SEARCH -->
-      <form action="search.php" method="GET" class="p-3 border-bottom">
-        <input name="q" class="form-control" placeholder="Tìm bài học...">
-      </form>
+<hr>
 
-      <!-- DANH SÁCH CHƯƠNG -->
-      <div class="p-2">
-      <?php while($c = $chapters->fetch_assoc()) { ?>
-        <div class="mb-2">
-          <b><?= $c['title'] ?></b>
+<?php while($c = $chapters->fetch_assoc()) { ?>
 
-          <?php
-          $lessons = $conn->query("SELECT * FROM lessons WHERE chapter_id=".$c['id']." ORDER BY order_num");
-          while($l = $lessons->fetch_assoc()) {
-          ?>
-            <div>
-              <a href="?lesson=<?= $l['id'] ?>"
-                 class="text-white text-decoration-none d-block p-2
-                 <?= (isset($_GET['lesson']) && $_GET['lesson']==$l['id']) ? 'bg-primary' : '' ?>">
+<div class="mb-3">
 
-                - <?= $l['title'] ?>
-              </a>
-            </div>
-          <?php } ?>
-        </div>
-      <?php } ?>
-      </div>
+<b><?= $c['title'] ?></b>
 
-    </div>
+<?php
+$lessons = $conn->query("SELECT * FROM lessons WHERE chapter_id=".$c['id']." ORDER BY order_num");
+while($l = $lessons->fetch_assoc()) {
+?>
 
-    <!-- CONTENT -->
-    <div class="col-9 p-4">
+<a href="?lesson=<?= $l['id'] ?>"
+class="<?= (isset($_GET['lesson']) && $_GET['lesson']==$l['id']) ? 'active-lesson' : '' ?>">
+→ <?= $l['title'] ?>
+</a>
 
-      <?php if($currentLesson){ ?>
+<?php } ?>
 
-        <!-- Hiển thị chương -->
-        <?php if($currentChapter){ ?>
-          <h5 class="text-muted"><?= $currentChapter['title'] ?></h5>
-        <?php } ?>
+</div>
 
-        <h2><?= $currentLesson['title'] ?></h2>
-        <hr>
+<?php } ?>
 
-        <div>
-          <?= $currentLesson['content'] ?>
-        </div>
+</div>
 
-        <!-- BÀI TẬP -->
-        <?php
-        $ex = $conn->query("SELECT * FROM exercises WHERE lesson_id=".$currentLesson['id']);
-        if($ex && $ex->num_rows > 0){
-        ?>
-          <hr>
-          <h4>📝 Bài tập</h4>
+<!-- MAIN -->
+<div class="flex-grow-1">
 
-          <?php while($e = $ex->fetch_assoc()){ ?>
-            <div class="mt-3 p-3 border rounded">
-              <h5><?= $e['title'] ?></h5>
-              <p><?= $e['description'] ?></p>
+<!-- HEADER -->
+<div class="header d-flex justify-content-between align-items-center">
 
-              <a href="submit.php?id=<?= $e['id'] ?>" class="btn btn-primary mt-2">
-                  Làm bài
-              </a>
-                <textarea name="code" class="form-control" rows="5" placeholder="Nhập code của bạn..."></textarea>
-                <input type="hidden" name="exercise_id" value="<?= $e['id'] ?>">
-                <button class="btn btn-primary mt-2">Nộp bài</button>
-              </form>
-            </div>
-          <?php } ?>
+<div>
+<h5 class="mb-0">📖 Học lập trình C++</h5>
+<small class="text-muted">Hệ thống tra cứu và luyện tập</small>
+</div>
 
-        <?php } ?>
+<div class="d-flex align-items-center gap-2">
 
-      <?php } else { ?>
-        <h2>Chọn bài học bên trái 👈</h2>
-      <?php } ?>
+<div class="user-box">
+👤 <?= $username ?>
+</div>
 
-    </div>
+<a href="../change_password.php" class="btn btn-warning btn-soft">
+🔑 Đổi mật khẩu
+</a>
 
-  </div>
+<a href="../logout.php" class="btn btn-danger btn-soft">
+🚪 Đăng xuất
+</a>
+
+</div>
+
+</div>
+
+<!-- CONTENT -->
+<div class="p-4">
+
+<div class="content-box">
+
+<?php
+if(isset($_GET['lesson'])) {
+
+$id = (int)$_GET['lesson'];
+$lesson = $conn->query("SELECT * FROM lessons WHERE id=$id")->fetch_assoc();
+?>
+
+<h3><?= $lesson['title'] ?></h3>
+<hr>
+
+<div style="line-height:1.6;">
+<?= $lesson['content'] ?>
+</div>
+
+<hr>
+
+<h5>📝 Bài tập</h5>
+
+<?php
+$ex = $conn->query("SELECT * FROM exercises WHERE lesson_id=$id");
+
+if($ex->num_rows == 0){
+    echo "<p class='text-muted'>Chưa có bài tập</p>";
+}
+
+while($e = $ex->fetch_assoc()){
+?>
+
+<div class="card mb-3">
+<div class="card-body">
+
+<b><?= $e['title'] ?></b>
+<p><?= $e['description'] ?></p>
+
+<a href="submit.php?id=<?= $e['id'] ?>" class="btn btn-primary btn-sm">
+Làm bài
+</a>
+
+</div>
+</div>
+
+<?php } ?>
+
+<?php } else { ?>
+
+<h4>👋 Chào mừng bạn!</h4>
+<p class="text-muted">Hãy chọn bài học ở bên trái để bắt đầu.</p>
+
+<?php } ?>
+
+</div>
+
+</div>
+
+</div>
+
 </div>
 
 </body>

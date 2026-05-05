@@ -58,7 +58,7 @@ $lessons = $conn->query($sql);
 
 <?php while($l = $lessons->fetch_assoc()){ ?>
 <tr>
-
+    
 
 <td>
     <b><?= $l['title'] ?></b>
