@@ -1,33 +1,37 @@
 <?php
+session_start();
 include(__DIR__ . "/../includes/db.php");
 
-// Lấy ID
-$id = (int)$_GET['id'];
-
-// Lấy dữ liệu bài học
-$lesson = $conn->query("SELECT * FROM lessons WHERE id=$id")->fetch_assoc();
-
-// Nếu không tồn tại
-if(!$lesson){
-    die("Bài học không tồn tại");
+if(!isset($_SESSION['role']) || $_SESSION['role'] != 'teacher'){
+    header("Location: ../login.php");
+    exit;
 }
 
-// Khi submit
-if ($_POST) {
-    $title = $_POST['title'];
+$id = (int)$_GET['id'];
+
+// lấy dữ liệu
+$lesson = $conn->query("SELECT * FROM lessons WHERE id=$id")->fetch_assoc();
+$chapters = $conn->query("SELECT * FROM chapters");
+
+$msg = "";
+
+if($_POST){
+    $title = trim($_POST['title']);
     $content = $_POST['content'];
-    $chapter = (int)$_POST['chapter_id'];
-    $order = (int)$_POST['order_num'];
+    $chapter_id = (int)$_POST['chapter_id'];
 
-    $conn->query("UPDATE lessons 
-                  SET title='$title',
-                      content='$content',
-                      chapter_id=$chapter,
-                      order_num=$order
-                  WHERE id=$id");
+    if($title == "" || $chapter_id == 0){
+        $msg = "<div class='alert alert-danger'>Vui lòng nhập đầy đủ</div>";
+    } else {
 
-    header("Location: lesson.php");
-    exit;
+        $conn->query("
+        UPDATE lessons 
+        SET title='$title', content='$content', chapter_id=$chapter_id
+        WHERE id=$id
+        ");
+
+        $msg = "<div class='alert alert-success'>Cập nhật thành công</div>";
+    }
 }
 ?>
 
@@ -35,58 +39,117 @@ if ($_POST) {
 <html lang="vi">
 <head>
 <meta charset="UTF-8">
-<title>Sửa bài học</title>
+<title>Chỉnh sửa bài học</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-.container {
-    max-width: 600px;
+body {
+    background: #f1f5f9;
+}
+
+/* CARD */
+.box {
+    background: white;
+    padding: 30px;
+    border-radius: 18px;
+}
+
+/* HEADER */
+.header {
+    font-weight: 600;
+}
+
+/* BUTTON */
+.btn-soft {
+    border-radius: 20px;
+    padding: 6px 14px;
 }
 </style>
-
 </head>
+
 <body>
 
 <div class="container mt-4">
 
-<h3>✏️ Sửa bài học</h3>
+<div class="box shadow">
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+<div>
+<h3 class="header">✏️ Chỉnh sửa bài học</h3>
+<small class="text-muted">Cập nhật nội dung bài học</small>
+</div>
+
+<a href="lesson.php" class="btn btn-secondary btn-soft">⬅️ Quay lại</a>
+
+</div>
+
+<?= $msg ?>
 
 <form method="POST">
 
-    <!-- Tên bài -->
-    <label>Tên bài học</label>
-    <input name="title" class="form-control mb-3" 
-           value="<?= $lesson['title'] ?>" required>
+<div class="mb-3">
+<label class="form-label">📌 Tiêu đề</label>
+<input name="title" value="<?= $lesson['title'] ?>" class="form-control">
+</div>
 
-    <!-- Thứ tự -->
-    <label>Thứ tự hiển thị</label>
-    <input name="order_num" type="number" class="form-control mb-3" 
-           value="<?= $lesson['order_num'] ?>" required>
+<div class="mb-3">
+<label class="form-label">📚 Chương</label>
+<select name="chapter_id" class="form-control">
+<?php while($c = $chapters->fetch_assoc()){ ?>
+<option value="<?= $c['id'] ?>" 
+<?= ($lesson['chapter_id'] == $c['id']) ? 'selected' : '' ?>>
+<?= $c['title'] ?>
+</option>
+<?php } ?>
+</select>
+</div>
 
-    <!-- Chọn chương -->
-    <label>Chọn chương</label>
-    <select name="chapter_id" class="form-control mb-3">
-        <?php
-        $res = $conn->query("SELECT * FROM chapters ORDER BY order_num");
-        while ($c = $res->fetch_assoc()) {
-            $selected = ($c['id'] == $lesson['chapter_id']) ? "selected" : "";
-            echo "<option value='".$c['id']."' $selected>".$c['title']."</option>";
-        }
-        ?>
-    </select>
+<div class="mb-3">
+<label class="form-label">📝 Nội dung bài học</label>
+<textarea name="content" id="editor">
+<?= htmlspecialchars($lesson['content']) ?>
+</textarea>
+</div>
 
-    <!-- Nội dung -->
-    <label>Nội dung bài học</label>
-    <textarea name="content" class="form-control mb-3" rows="6"><?= $lesson['content'] ?></textarea>
+<div class="d-flex gap-2">
 
-    <!-- Nút -->
-    <button class="btn btn-warning">💾 Cập nhật</button>
-    <a href="lesson.php" class="btn btn-secondary">⬅️ Quay lại</a>
+<button class="btn btn-primary btn-soft">
+💾 Lưu thay đổi
+</button>
+
+<button type="reset" class="btn btn-outline-secondary btn-soft">
+🔄 Reset
+</button>
+
+</div>
 
 </form>
 
 </div>
+
+</div>
+
+<!-- CKEDITOR FULL -->
+<script src="https://cdn.ckeditor.com/4.21.0/full/ckeditor.js"></script>
+
+<script>
+CKEDITOR.replace('editor', {
+    height: 450,
+
+    toolbar: [
+        { name: 'document', items: ['Source'] },
+        { name: 'clipboard', items: ['Undo','Redo'] },
+        { name: 'basicstyles', items: ['Bold','Italic','Underline','Strike'] },
+        { name: 'paragraph', items: ['NumberedList','BulletedList','Blockquote'] },
+        { name: 'styles', items: ['Styles','Format','Font','FontSize'] },
+        { name: 'colors', items: ['TextColor','BGColor'] },
+        { name: 'align', items: ['JustifyLeft','JustifyCenter','JustifyRight'] },
+        { name: 'insert', items: ['Image','Table','HorizontalRule','CodeSnippet'] }
+    ]
+});
+</script>
 
 </body>
 </html>

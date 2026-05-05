@@ -2,44 +2,48 @@
 session_start();
 include(__DIR__ . "/../includes/db.php");
 
-// 👉 giả lập user (sau này thay bằng login)
-$user_id = 1;
-
-// ❗ CHECK ID
-if(!isset($_GET['id'])){
-    die("Thiếu ID bài tập");
+// check student
+if(!isset($_SESSION['role']) || $_SESSION['role'] != 'student'){
+    header("Location: ../login.php");
+    exit;
 }
 
+$user_id = $_SESSION['user_id'];
 $exercise_id = (int)$_GET['id'];
 
-// LẤY THÔNG TIN BÀI TẬP
-$exercise = $conn->query("
-SELECT exercises.*, lessons.title AS lesson_name 
-FROM exercises 
-JOIN lessons ON exercises.lesson_id = lessons.id
-WHERE exercises.id = $exercise_id
-")->fetch_assoc();
+// lấy bài tập
+$exercise = $conn->query("SELECT * FROM exercises WHERE id=$exercise_id")->fetch_assoc();
 
-if(!$exercise){
-    die("Bài tập không tồn tại");
-}
-
-// SUBMIT
 $message = "";
 
 if($_POST){
-    $code = $conn->real_escape_string($_POST['code']);
 
-    if(trim($code) == ""){
-        $message = "<div class='alert alert-danger'>Không được để trống code</div>";
+    $code = $_POST['code'];
+    $output = trim($_POST['output']); // học sinh nhập output
+
+    $expected = trim($exercise['test_output']);
+
+    // CHẤM ĐIỂM
+    if($output === $expected){
+        $score = 10;
+        $result = "Đúng";
     } else {
-        $conn->query("
-        INSERT INTO submissions(user_id, exercise_id, code)
-        VALUES($user_id, $exercise_id, '$code')
-        ");
-
-        $message = "<div class='alert alert-success'>✅ Nộp bài thành công!</div>";
+        $score = 0;
+        $result = "Sai";
     }
+
+    // lưu DB
+    $conn->query("
+    INSERT INTO submissions(user_id, exercise_id, code, score, result)
+    VALUES($user_id, $exercise_id, '$code', $score, '$result')
+    ");
+
+    $message = "
+    <div class='alert alert-info mt-3'>
+        <b>Kết quả:</b> $result <br>
+        <b>Điểm:</b> $score
+    </div>
+    ";
 }
 ?>
 
@@ -52,60 +56,48 @@ if($_POST){
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body {
-    background: #f5f7fb;
-}
+body { background:#f1f5f9; }
 
-.container-box {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.code-box {
-    background: #0f172a;
-    color: #22c55e;
-    padding: 15px;
-    border-radius: 8px;
-    font-family: monospace;
+.box {
+    background:white;
+    padding:25px;
+    border-radius:16px;
 }
 </style>
 
 </head>
+
 <body>
 
 <div class="container mt-4">
 
-<div class="container-box">
+<div class="box shadow">
 
 <h3>📝 <?= $exercise['title'] ?></h3>
-<p class="text-muted">Bài học: <?= $exercise['lesson_name'] ?></p>
 
 <hr>
 
-<p><?= $exercise['description'] ?></p>
+<p><b>📥 Input:</b></p>
+<pre><?= $exercise['test_input'] ?></pre>
 
-<?= $message ?>
+<p><b>📤 Output cần đạt:</b></p>
+<pre><?= $exercise['test_output'] ?></pre>
+
+<hr>
 
 <form method="POST">
 
-<label><b>Code của bạn:</b></label>
+<label>Code của bạn</label>
+<textarea name="code" class="form-control mb-2" rows="6"></textarea>
 
-<textarea name="code" class="form-control mt-2 mb-3" rows="12"
-style="background:#0f172a;color:#22c55e;font-family:monospace;"
-placeholder="// Nhập code C++ ở đây..."></textarea>
+<label>Output chương trình</label>
+<input name="output" class="form-control mb-3" placeholder="Nhập kết quả chương trình">
 
 <button class="btn btn-primary">🚀 Nộp bài</button>
 
-<a href="index.php" class="btn btn-secondary">⬅️ Quay lại</a>
-
 </form>
 
-<hr>
-
-<a href="my_submissions.php" class="btn btn-dark">
-📥 Xem bài đã nộp
-</a>
+<?= $message ?>
 
 </div>
 

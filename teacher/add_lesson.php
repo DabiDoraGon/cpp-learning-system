@@ -1,20 +1,26 @@
 <?php
+session_start();
 include(__DIR__ . "/../includes/db.php");
 
-// Xử lý khi submit form
-if ($_POST) {
+if(!isset($_SESSION['role']) || $_SESSION['role'] != 'teacher'){
+    header("Location: ../login.php");
+    exit;
+}
+
+$msg = "";
+$chapters = $conn->query("SELECT * FROM chapters");
+
+if($_POST){
     $title = $_POST['title'];
     $content = $_POST['content'];
-    $chapter = (int)$_POST['chapter_id'];
-    $order = (int)$_POST['order_num'];
+    $chapter_id = (int)$_POST['chapter_id'];
 
-    // Insert DB
-    $conn->query("INSERT INTO lessons(title,content,chapter_id,order_num)
-                  VALUES('$title','$content',$chapter,$order)");
+    $conn->query("
+    INSERT INTO lessons(title, content, chapter_id)
+    VALUES('$title','$content',$chapter_id)
+    ");
 
-    // Redirect tránh submit lại
-    header("Location: lesson.php");
-    exit;
+    $msg = "<div class='alert alert-success'>Đã lưu bài học</div>";
 }
 ?>
 
@@ -27,50 +33,110 @@ if ($_POST) {
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-.container {
-    max-width: 600px;
+body { background:#f1f5f9; }
+
+.box {
+    background:white;
+    padding:25px;
+    border-radius:18px;
+}
+
+.preview {
+    background:white;
+    padding:20px;
+    border-radius:16px;
+    height:600px;
+    overflow:auto;
 }
 </style>
-
 </head>
+
 <body>
 
 <div class="container mt-4">
 
-<h3>➕ Thêm bài học</h3>
+<div class="row">
+
+<!-- EDITOR -->
+<div class="col-md-7">
+<div class="box shadow">
+
+<h4>📝 Soạn bài</h4>
+
+<?= $msg ?>
 
 <form method="POST">
 
-    <!-- Tên bài -->
-    <label>Tên bài học</label>
-    <input name="title" class="form-control mb-3" required>
+<input name="title" placeholder="Tiêu đề" class="form-control mb-2">
 
-    <!-- Thứ tự -->
-    <label>Thứ tự hiển thị</label>
-    <input name="order_num" type="number" class="form-control mb-3" required>
+<select name="chapter_id" class="form-control mb-3">
+<?php while($c = $chapters->fetch_assoc()){ ?>
+<option value="<?= $c['id'] ?>"><?= $c['title'] ?></option>
+<?php } ?>
+</select>
 
-    <!-- Chọn chương -->
-    <label>Chọn chương</label>
-    <select name="chapter_id" class="form-control mb-3" required>
-        <?php
-        $res = $conn->query("SELECT * FROM chapters ORDER BY order_num");
-        while ($c = $res->fetch_assoc()) {
-            echo "<option value='".$c['id']."'>".$c['title']."</option>";
-        }
-        ?>
-    </select>
+<textarea name="content" id="editor"></textarea>
 
-    <!-- Nội dung -->
-    <label>Nội dung bài học</label>
-    <textarea name="content" class="form-control mb-3" rows="6" required></textarea>
+<br>
 
-    <!-- Nút -->
-    <button class="btn btn-success">💾 Lưu bài học</button>
-    <a href="lesson.php" class="btn btn-secondary">⬅️ Quay lại</a>
+<button class="btn btn-primary">💾 Lưu</button>
 
 </form>
 
 </div>
+</div>
+
+<!-- PREVIEW -->
+<div class="col-md-5">
+<div class="preview shadow">
+
+<h5>👀 Preview</h5>
+<hr>
+
+<div id="previewContent"></div>
+
+</div>
+</div>
+
+</div>
+
+</div>
+
+<!-- CKEDITOR -->
+<script src="https://cdn.ckeditor.com/4.21.0/full/ckeditor.js"></script>
+
+<script>
+var editor = CKEDITOR.replace('editor', {
+    height: 400,
+
+    filebrowserUploadUrl: 'upload.php',
+
+    toolbar: [
+        { name: 'clipboard', items: ['Undo','Redo'] },
+        { name: 'basicstyles', items: ['Bold','Italic','Underline'] },
+        { name: 'paragraph', items: ['NumberedList','BulletedList'] },
+        { name: 'styles', items: ['Font','FontSize'] },
+        { name: 'colors', items: ['TextColor','BGColor'] },
+        { name: 'insert', items: ['Image','Table','CodeSnippet'] }
+    ]
+});
+
+// PREVIEW REALTIME
+editor.on('change', function(){
+    document.getElementById("previewContent").innerHTML = editor.getData();
+
+    // autosave
+    localStorage.setItem("draft", editor.getData());
+});
+
+// LOAD LẠI NHÁP
+window.onload = function(){
+    let draft = localStorage.getItem("draft");
+    if(draft){
+        editor.setData(draft);
+    }
+}
+</script>
 
 </body>
 </html>
