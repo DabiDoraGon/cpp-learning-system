@@ -7,11 +7,49 @@ if(!isset($_SESSION['role']) || $_SESSION['role'] != 'admin'){
     exit;
 }
 
-// lấy user
-$users = $conn->query("SELECT * FROM users");
+/* ========= XỬ LÝ ========= */
+
+// DUYỆT
+if(isset($_GET['approve'])){
+    $id = (int)$_GET['approve'];
+    $conn->query("UPDATE users SET status='active' WHERE id=$id");
+    header("Location: index.php");
+    exit;
+}
+
+// TỪ CHỐI
+if(isset($_GET['reject'])){
+    $id = (int)$_GET['reject'];
+    $conn->query("DELETE FROM users WHERE id=$id");
+    header("Location: index.php");
+    exit;
+}
+
+// XÓA USER
+if(isset($_GET['delete'])){
+    $id = (int)$_GET['delete'];
+    $conn->query("DELETE FROM users WHERE id=$id");
+    header("Location: index.php");
+    exit;
+}
+
+// THÊM USER
+if(isset($_POST['add_user'])){
+    $u = $_POST['username'];
+    $p = $_POST['password'];
+    $r = $_POST['role'];
+
+    $conn->query("INSERT INTO users(username,password,role,status)
+                  VALUES('$u','$p','$r','active')");
+    header("Location: index.php");
+    exit;
+}
+
+// LẤY USER
+$users = $conn->query("SELECT * FROM users ORDER BY id DESC");
 
 // tên admin
-$username = "Quản trị viên";
+$username = "Admin";
 if(isset($_SESSION['user_id'])){
     $id = $_SESSION['user_id'];
     $u = $conn->query("SELECT username FROM users WHERE id=$id")->fetch_assoc();
@@ -24,117 +62,103 @@ if(isset($_SESSION['user_id'])){
 <head>
 <meta charset="UTF-8">
 <title>Quản trị hệ thống</title>
-
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-
-body {
-    background: #f1f5f9;
-}
-
-/* HEADER */
-.header {
-    background: white;
-    padding: 15px 25px;
-    border-bottom: 1px solid #e5e7eb;
-}
-
-/* USER */
-.user-box {
-    background: #f1f5f9;
-    padding: 6px 12px;
-    border-radius: 20px;
-}
-
-/* BUTTON */
-.btn-soft {
-    border-radius: 20px;
-    padding: 6px 14px;
-}
-
-/* CONTENT */
-.content-box {
-    background: white;
-    padding: 25px;
-    border-radius: 16px;
-}
-
+body { background:#f1f5f9; }
+.header { background:white;padding:15px 25px;border-bottom:1px solid #ddd;}
+.content-box { background:white;padding:25px;border-radius:16px;}
 </style>
-
 </head>
+
 <body>
 
 <!-- HEADER -->
-<div class="header d-flex justify-content-between align-items-center">
+<div class="header d-flex justify-content-between">
+<h5>⚙️ Quản trị hệ thống</h5>
 
 <div>
-<h5 class="mb-0">⚙️ Bảng điều khiển quản trị</h5>
-<small class="text-muted">Quản lý tài khoản hệ thống</small>
+<a href="../change_password.php" class="btn btn-warning btn-sm">🔑</a>
+<a href="../logout.php" class="btn btn-danger btn-sm">🚪</a>
 </div>
-
-<div class="d-flex align-items-center gap-2">
-
-<div class="user-box">
-👤 <?= $username ?>
-</div>
-
-<a href="../change_password.php" class="btn btn-warning btn-soft">
-🔑 Đổi mật khẩu
-</a>
-
-<a href="../logout.php" class="btn btn-danger btn-soft">
-🚪 Đăng xuất
-</a>
-
-</div>
-
 </div>
 
 <div class="container mt-4">
 
 <div class="content-box">
 
-<div class="d-flex justify-content-between align-items-center mb-3">
-<h4>👤 Danh sách người dùng</h4>
+<!-- ADD USER -->
+<h5>➕ Thêm tài khoản</h5>
 
-<a href="add_user.php" class="btn btn-primary">
-➕ Thêm tài khoản
-</a>
+<form method="POST" class="row g-2 mb-4">
+
+<div class="col">
+<input name="username" class="form-control" placeholder="Username">
 </div>
+
+<div class="col">
+<input name="password" class="form-control" placeholder="Password">
+</div>
+
+<div class="col">
+<select name="role" class="form-control">
+<option value="student">Học sinh</option>
+<option value="teacher">Giáo viên</option>
+<option value="admin">Admin</option>
+</select>
+</div>
+
+<div class="col">
+<button name="add_user" class="btn btn-primary">Thêm</button>
+</div>
+
+</form>
+
+<!-- TABLE -->
+<h5>👤 Danh sách tài khoản</h5>
 
 <table class="table table-bordered table-hover">
 
 <tr class="table-dark">
-<th>Tên đăng nhập</th>
-<th>Vai trò</th>
+<th>ID</th>
+<th>Username</th>
+<th>Role</th>
+<th>Trạng thái</th>
 <th>Hành động</th>
 </tr>
 
 <?php while($u = $users->fetch_assoc()){ ?>
+
 <tr>
 
+<td><?= $u['id'] ?></td>
 <td><?= $u['username'] ?></td>
 
 <td>
-<?php
-if($u['role'] == 'admin') echo "Quản trị viên";
-elseif($u['role'] == 'teacher') echo "Giáo viên";
-else echo "Học sinh";
-?>
+<?= $u['role'] ?>
+</td>
+
+<td>
+<?= $u['status'] == 'active' ? 'Đã duyệt' : 'Chờ duyệt' ?>
 </td>
 
 <td>
 
-<a href="?delete=<?= $u['id'] ?>" 
-class="btn btn-danger btn-sm"
-onclick="return confirm('Bạn có chắc muốn xóa?')">
-Xóa
-</a>
+<?php if($u['status'] == 'pending'){ ?>
+
+<a href="?approve=<?= $u['id'] ?>" class="btn btn-success btn-sm">✔️</a>
+<a href="?reject=<?= $u['id'] ?>" class="btn btn-danger btn-sm">❌</a>
+
+<?php } else { ?>
+
+<a href="?delete=<?= $u['id'] ?>" class="btn btn-danger btn-sm">Xóa</a>
+
+<?php } ?>
 
 </td>
 
 </tr>
+
 <?php } ?>
 
 </table>
