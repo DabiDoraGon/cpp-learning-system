@@ -50,7 +50,6 @@ $lessons = $conn->query($sql);
 <table class="table table-bordered table-hover">
 
 <tr class="table-dark">
-    <th>ID</th>
     <th>Tên bài</th>
     <th>Chương</th>
     <th>Thứ tự</th>
@@ -60,7 +59,6 @@ $lessons = $conn->query($sql);
 <?php while($l = $lessons->fetch_assoc()){ ?>
 <tr>
 
-<td><?= $l['id'] ?></td>
 
 <td>
     <b><?= $l['title'] ?></b>
