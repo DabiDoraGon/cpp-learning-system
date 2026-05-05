@@ -128,7 +128,9 @@ if(isset($_GET['lesson'])){
               <h5><?= $e['title'] ?></h5>
               <p><?= $e['description'] ?></p>
 
-              <form method="POST" action="submit.php">
+              <a href="submit.php?id=<?= $e['id'] ?>" class="btn btn-primary mt-2">
+                  Làm bài
+              </a>
                 <textarea name="code" class="form-control" rows="5" placeholder="Nhập code của bạn..."></textarea>
                 <input type="hidden" name="exercise_id" value="<?= $e['id'] ?>">
                 <button class="btn btn-primary mt-2">Nộp bài</button>
