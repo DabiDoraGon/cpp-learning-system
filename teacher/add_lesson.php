@@ -1,20 +1,39 @@
 <?php
 include(__DIR__ . "/../includes/db.php");
 
-if($_POST){
+// Xử lý khi submit form
+if ($_POST) {
     $title = $_POST['title'];
     $content = $_POST['content'];
-    $chapter = $_POST['chapter_id'];
-    $order = $_POST['order_num'];
+    $chapter = (int)$_POST['chapter_id'];
+    $order = (int)$_POST['order_num'];
 
+    // Insert DB
     $conn->query("INSERT INTO lessons(title,content,chapter_id,order_num)
-                  VALUES('$title','$content','$chapter','$order')");
+                  VALUES('$title','$content',$chapter,$order)");
 
-    echo "Thêm bài học thành công!";
+    // Redirect tránh submit lại
+    header("Location: lesson.php");
+    exit;
 }
 ?>
 
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Thêm bài học</title>
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+
+<style>
+.container {
+    max-width: 600px;
+}
+</style>
+
+</head>
+<body>
 
 <div class="container mt-4">
 
@@ -22,23 +41,36 @@ if($_POST){
 
 <form method="POST">
 
-<input name="title" class="form-control mb-2" placeholder="Tên bài học">
+    <!-- Tên bài -->
+    <label>Tên bài học</label>
+    <input name="title" class="form-control mb-3" required>
 
-<input name="order_num" class="form-control mb-2" placeholder="Thứ tự">
+    <!-- Thứ tự -->
+    <label>Thứ tự hiển thị</label>
+    <input name="order_num" type="number" class="form-control mb-3" required>
 
-<select name="chapter_id" class="form-control mb-2">
-<?php
-$res = $conn->query("SELECT * FROM chapters");
-while($c = $res->fetch_assoc()){
-    echo "<option value='".$c['id']."'>".$c['title']."</option>";
-}
-?>
-</select>
+    <!-- Chọn chương -->
+    <label>Chọn chương</label>
+    <select name="chapter_id" class="form-control mb-3" required>
+        <?php
+        $res = $conn->query("SELECT * FROM chapters ORDER BY order_num");
+        while ($c = $res->fetch_assoc()) {
+            echo "<option value='".$c['id']."'>".$c['title']."</option>";
+        }
+        ?>
+    </select>
 
-<textarea name="content" class="form-control mb-2" rows="5" placeholder="Nội dung"></textarea>
+    <!-- Nội dung -->
+    <label>Nội dung bài học</label>
+    <textarea name="content" class="form-control mb-3" rows="6" required></textarea>
 
-<button class="btn btn-success">Lưu</button>
+    <!-- Nút -->
+    <button class="btn btn-success">💾 Lưu bài học</button>
+    <a href="lesson.php" class="btn btn-secondary">⬅️ Quay lại</a>
 
 </form>
 
 </div>
+
+</body>
+</html>
