@@ -144,6 +144,10 @@ class="<?= (isset($_GET['lesson']) && $_GET['lesson']==$l['id']) ? 'active-lesso
 👤 <?= $username ?>
 </div>
 
+<a href="my_submissions.php" class="btn btn-info btn-soft">
+📚 Bài đã nộp
+</a>
+
 <a href="../change_password.php" class="btn btn-warning btn-soft">
 🔑 Đổi mật khẩu
 </a>

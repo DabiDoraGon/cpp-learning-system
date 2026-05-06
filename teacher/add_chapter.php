@@ -1,14 +1,24 @@
 <?php
+session_start();
 include(__DIR__ . "/../includes/db.php");
 
 if($_POST){
-    $title = $_POST['title'];
-    $order = $_POST['order_num'];
 
-    $conn->query("INSERT INTO chapters(title, order_num)
-                  VALUES('$title','$order')");
+    $title = trim($_POST['title']);
+    $order = (int)$_POST['order_num'];
 
-    echo "Thêm chương thành công!";
+    // validate
+    if($title != ""){
+
+        $conn->query("
+        INSERT INTO chapters(title, order_num)
+        VALUES('$title', '$order')
+        ");
+
+        // quay lại quản lí chương
+        header("Location: chapter.php");
+        exit;
+    }
 }
 ?>
 
@@ -18,13 +28,28 @@ if($_POST){
 
 <h3>➕ Thêm chương</h3>
 
+<a href="chapter.php" class="btn btn-secondary mb-3">
+⬅️ Quay lại
+</a>
+
 <form method="POST">
 
-<input name="title" class="form-control mb-2" placeholder="Tên chương">
+<input
+name="title"
+class="form-control mb-2"
+placeholder="Tên chương"
+required>
 
-<input name="order_num" class="form-control mb-2" placeholder="Thứ tự">
+<input
+name="order_num"
+type="number"
+class="form-control mb-3"
+placeholder="Thứ tự"
+required>
 
-<button class="btn btn-primary">Lưu</button>
+<button class="btn btn-primary">
+💾 Lưu
+</button>
 
 </form>
 

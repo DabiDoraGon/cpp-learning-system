@@ -4,100 +4,129 @@ include("includes/db.php");
 
 $error = "";
 
-if($_POST){
+if($_SERVER["REQUEST_METHOD"] == "POST"){
+
     $username = trim($_POST['username']);
     $password = trim($_POST['password']);
 
-    if($username == "" || $password == ""){
-        $error = "Vui lòng nhập đầy đủ thông tin";
-    } else {
+    $sql = "SELECT * FROM users 
+            WHERE username='$username' 
+            LIMIT 1";
 
-        $sql = "SELECT * FROM users 
-                WHERE username='$username' 
-                AND password='$password'";
+    $result = mysqli_query($conn, $sql);
 
-        $res = $conn->query($sql);
+    if(mysqli_num_rows($result) > 0){
 
-        if($res->num_rows > 0){
+        $user = mysqli_fetch_assoc($result);
 
-            $user = $res->fetch_assoc();
+        // HASH PASSWORD VERIFY
+        if(password_verify($password, $user['password'])){
 
-            // ❗ CHẶN CHƯA DUYỆT
             if($user['status'] != 'active'){
-                $error = "Tài khoản đang chờ quản trị viên duyệt";
+
+                $error = "Tài khoản chưa được duyệt!";
+
             } else {
 
-                // lưu session
                 $_SESSION['user_id'] = $user['id'];
                 $_SESSION['role'] = $user['role'];
 
-                // điều hướng
+                // chuyển hướng role
                 if($user['role'] == 'admin'){
+
                     header("Location: admin/");
-                } elseif($user['role'] == 'teacher'){
+
+                }
+                elseif($user['role'] == 'teacher'){
+
                     header("Location: teacher/");
-                } else {
+
+                }
+                else{
+
                     header("Location: student/");
                 }
+
                 exit;
             }
 
         } else {
-            $error = "Sai tài khoản hoặc mật khẩu";
+
+            $error = "Sai mật khẩu!";
         }
+
+    } else {
+
+        $error = "Không tồn tại tài khoản!";
     }
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>Đăng nhập</title>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
-<style>
-body {
-    background: #f1f5f9;
-}
-
-.box {
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-}
-</style>
-
 </head>
-<body>
 
-<div class="container mt-5" style="max-width:400px;">
+<body class="bg-light d-flex align-items-center" style="height:100vh;">
 
-<div class="box shadow">
+<div class="container">
 
-<h3 class="text-center mb-3">🔐 Đăng nhập</h3>
+<div class="row justify-content-center">
 
-<?php if($error){ ?>
-<div class="alert alert-danger"><?= $error ?></div>
+<div class="col-md-4">
+
+<div class="card p-4 shadow">
+
+<h4 class="text-center mb-3">
+🔐 Đăng nhập
+</h4>
+
+<?php if($error != ""){ ?>
+
+<div class="alert alert-danger">
+<?= $error ?>
+</div>
+
 <?php } ?>
 
 <form method="POST">
 
-<label>Tên đăng nhập</label>
-<input name="username" class="form-control mb-2">
+<input type="text"
+name="username"
+class="form-control mb-3"
+placeholder="Tên đăng nhập"
+required>
 
-<label>Mật khẩu</label>
-<input type="password" name="password" class="form-control mb-3">
+<input type="password"
+name="password"
+class="form-control mb-3"
+placeholder="Mật khẩu"
+required>
 
-<button class="btn btn-primary w-100">Đăng nhập</button>
+<button class="btn btn-primary w-100">
+Đăng nhập
+</button>
 
 </form>
 
-<hr>
+<div class="mt-3 text-center">
 
-<div class="text-center">
-<a href="register.php">Chưa có tài khoản? Đăng ký</a>
+<a href="register.php">
+Chưa có tài khoản? Đăng ký
+</a>
+
+</div>
+
+</div>
+
 </div>
 
 </div>

@@ -12,7 +12,13 @@ if(!isset($_SESSION['role']) || $_SESSION['role'] != 'admin'){
 // DUYỆT
 if(isset($_GET['approve'])){
     $id = (int)$_GET['approve'];
-    $conn->query("UPDATE users SET status='active' WHERE id=$id");
+
+    $conn->query("
+    UPDATE users 
+    SET status='active' 
+    WHERE id=$id
+    ");
+
     header("Location: index.php");
     exit;
 }
@@ -20,7 +26,12 @@ if(isset($_GET['approve'])){
 // TỪ CHỐI
 if(isset($_GET['reject'])){
     $id = (int)$_GET['reject'];
-    $conn->query("DELETE FROM users WHERE id=$id");
+
+    $conn->query("
+    DELETE FROM users 
+    WHERE id=$id
+    ");
+
     header("Location: index.php");
     exit;
 }
@@ -28,59 +39,119 @@ if(isset($_GET['reject'])){
 // XÓA USER
 if(isset($_GET['delete'])){
     $id = (int)$_GET['delete'];
-    $conn->query("DELETE FROM users WHERE id=$id");
+
+    $conn->query("
+    DELETE FROM users 
+    WHERE id=$id
+    ");
+
     header("Location: index.php");
     exit;
 }
 
 // THÊM USER
 if(isset($_POST['add_user'])){
-    $u = $_POST['username'];
-    $p = $_POST['password'];
+
+    $u = trim($_POST['username']);
+    $raw = trim($_POST['password']);
     $r = $_POST['role'];
 
-    $conn->query("INSERT INTO users(username,password,role,status)
-                  VALUES('$u','$p','$r','active')");
+    if($u != "" && $raw != ""){
+
+        // hash password
+        $p = password_hash($raw, PASSWORD_DEFAULT);
+
+        $conn->query("
+        INSERT INTO users(username,password,role,status)
+        VALUES('$u','$p','$r','active')
+        ");
+    }
+
     header("Location: index.php");
     exit;
 }
 
 // LẤY USER
-$users = $conn->query("SELECT * FROM users ORDER BY id DESC");
+$users = $conn->query("
+SELECT * FROM users 
+ORDER BY id ASC
+");
 
 // tên admin
 $username = "Admin";
+
 if(isset($_SESSION['user_id'])){
+
     $id = $_SESSION['user_id'];
-    $u = $conn->query("SELECT username FROM users WHERE id=$id")->fetch_assoc();
-    if($u) $username = $u['username'];
+
+    $u = $conn->query("
+    SELECT username 
+    FROM users 
+    WHERE id=$id
+    ")->fetch_assoc();
+
+    if($u){
+        $username = $u['username'];
+    }
 }
 ?>
 
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
+
 <meta charset="UTF-8">
+
 <title>Quản trị hệ thống</title>
+
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-body { background:#f1f5f9; }
-.header { background:white;padding:15px 25px;border-bottom:1px solid #ddd;}
-.content-box { background:white;padding:25px;border-radius:16px;}
+
+body{
+    background:#f1f5f9;
+}
+
+.header{
+    background:white;
+    padding:15px 25px;
+    border-bottom:1px solid #ddd;
+}
+
+.content-box{
+    background:white;
+    padding:25px;
+    border-radius:16px;
+}
+
 </style>
+
 </head>
 
 <body>
 
 <!-- HEADER -->
-<div class="header d-flex justify-content-between">
-<h5>⚙️ Quản trị hệ thống</h5>
+<div class="header d-flex justify-content-between align-items-center">
+
+<h5>
+⚙️ Quản trị hệ thống
+</h5>
 
 <div>
-<a href="../change_password.php" class="btn btn-warning btn-sm">🔑</a>
-<a href="../logout.php" class="btn btn-danger btn-sm">🚪</a>
+
+<a href="../change_password.php"
+class="btn btn-warning btn-sm">
+🔑
+</a>
+
+<a href="../logout.php"
+class="btn btn-danger btn-sm">
+🚪
+</a>
+
 </div>
+
 </div>
 
 <div class="container mt-4">
@@ -93,26 +164,65 @@ body { background:#f1f5f9; }
 <form method="POST" class="row g-2 mb-4">
 
 <div class="col">
-<input name="username" class="form-control" placeholder="Username">
+
+<input
+name="username"
+class="form-control"
+placeholder="Username"
+required>
+
 </div>
 
 <div class="col">
-<input name="password" class="form-control" placeholder="Password">
+
+<input
+name="password"
+class="form-control"
+placeholder="Password"
+required>
+
 </div>
 
 <div class="col">
+
 <select name="role" class="form-control">
-<option value="student">Học sinh</option>
-<option value="teacher">Giáo viên</option>
-<option value="admin">Admin</option>
+
+<option value="student">
+Học sinh
+</option>
+
+<option value="teacher">
+Giáo viên
+</option>
+
+<option value="admin">
+Admin
+</option>
+
 </select>
+
 </div>
 
 <div class="col">
-<button name="add_user" class="btn btn-primary">Thêm</button>
+
+<button
+name="add_user"
+class="btn btn-primary">
+
+Thêm
+
+</button>
+
 </div>
 
 </form>
+
+<!-- SEARCH -->
+<input
+type="text"
+id="searchInput"
+class="form-control mb-3"
+placeholder="🔍 Tìm theo ID hoặc Username...">
 
 <!-- TABLE -->
 <h5>👤 Danh sách tài khoản</h5>
@@ -120,11 +230,13 @@ body { background:#f1f5f9; }
 <table class="table table-bordered table-hover">
 
 <tr class="table-dark">
+
 <th>ID</th>
 <th>Username</th>
 <th>Role</th>
 <th>Trạng thái</th>
 <th>Hành động</th>
+
 </tr>
 
 <?php while($u = $users->fetch_assoc()){ ?>
@@ -132,6 +244,7 @@ body { background:#f1f5f9; }
 <tr>
 
 <td><?= $u['id'] ?></td>
+
 <td><?= $u['username'] ?></td>
 
 <td>
@@ -139,19 +252,31 @@ body { background:#f1f5f9; }
 </td>
 
 <td>
-<?= $u['status'] == 'active' ? 'Đã duyệt' : 'Chờ duyệt' ?>
+<?= $u['status'] == 'active'
+? 'Đã duyệt'
+: 'Chờ duyệt' ?>
 </td>
 
 <td>
 
 <?php if($u['status'] == 'pending'){ ?>
 
-<a href="?approve=<?= $u['id'] ?>" class="btn btn-success btn-sm">✔️</a>
-<a href="?reject=<?= $u['id'] ?>" class="btn btn-danger btn-sm">❌</a>
+<a href="?approve=<?= $u['id'] ?>"
+class="btn btn-success btn-sm">
+✔️
+</a>
+
+<a href="?reject=<?= $u['id'] ?>"
+class="btn btn-danger btn-sm">
+❌
+</a>
 
 <?php } else { ?>
 
-<a href="?delete=<?= $u['id'] ?>" class="btn btn-danger btn-sm">Xóa</a>
+<a href="?delete=<?= $u['id'] ?>"
+class="btn btn-danger btn-sm">
+Xóa
+</a>
 
 <?php } ?>
 
@@ -166,6 +291,29 @@ body { background:#f1f5f9; }
 </div>
 
 </div>
+
+<!-- SEARCH JS -->
+<script>
+
+document.getElementById("searchInput")
+.addEventListener("keyup", function(){
+
+    let value = this.value.toLowerCase();
+
+    let rows = document.querySelectorAll("table tr");
+
+    rows.forEach((row, index) => {
+
+        if(index === 0) return;
+
+        row.style.display =
+        row.innerText.toLowerCase().includes(value)
+        ? ""
+        : "none";
+    });
+});
+
+</script>
 
 </body>
 </html>
